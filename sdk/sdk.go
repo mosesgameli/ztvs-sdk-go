@@ -4,14 +4,22 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/mosesgameli/ztvs-sdk-go/rpc"
 )
 
+// Run is the main entry point for a ZTVS plugin.
+// It reads JSON-RPC requests from standard input and writes responses to standard output.
 func Run(meta Metadata, checks []Check) {
+	InternalRun(os.Stdin, os.Stdout, meta, checks)
+}
+
+// InternalRun is used for integration testing. It reads from r and writes to w.
+func InternalRun(r io.Reader, w io.Writer, meta Metadata, checks []Check) {
 	var req rpc.Request
-	err := json.NewDecoder(os.Stdin).Decode(&req)
+	err := json.NewDecoder(r).Decode(&req)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to decode request: %v\n", err)
 		os.Exit(1)
@@ -34,7 +42,7 @@ func Run(meta Metadata, checks []Check) {
 				ChecksSupported: ids,
 			},
 		}
-		_ = json.NewEncoder(os.Stdout).Encode(resp)
+		_ = json.NewEncoder(w).Encode(resp)
 
 	case "run_check":
 		// Handle params unmarshaling
@@ -46,7 +54,7 @@ func Run(meta Metadata, checks []Check) {
 			if c.ID() == runReq.CheckID {
 				finding, err := c.Run(context.Background())
 				if err != nil {
-					sendError(req.ID, 5000, err.Error())
+					sendError(w, req.ID, 5000, err.Error())
 					return
 				}
 
@@ -74,17 +82,17 @@ func Run(meta Metadata, checks []Check) {
 					},
 				}
 
-				_ = json.NewEncoder(os.Stdout).Encode(resp)
+				_ = json.NewEncoder(w).Encode(resp)
 				return
 			}
 		}
-		sendError(req.ID, 4002, "check not found")
+		sendError(w, req.ID, 4002, "check not found")
 	default:
-		sendError(req.ID, -32601, "method not found")
+		sendError(w, req.ID, -32601, "method not found")
 	}
 }
 
-func sendError(id string, code int, msg string) {
+func sendError(w io.Writer, id string, code int, msg string) {
 	resp := map[string]interface{}{
 		"jsonrpc": "2.0",
 		"id":      id,
@@ -93,5 +101,5 @@ func sendError(id string, code int, msg string) {
 			"message": msg,
 		},
 	}
-	_ = json.NewEncoder(os.Stdout).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }

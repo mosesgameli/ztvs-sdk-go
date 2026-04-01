@@ -1,5 +1,9 @@
 # ZTVS Go SDK
 
+![Build Status](https://github.com/mosesgameli/ztvs-sdk-go/actions/workflows/ci.yml/badge.svg)
+![License](https://img.shields.io/github/license/mosesgameli/ztvs-sdk-go)
+![Go Report Card](https://goreportcard.com/badge/github.com/mosesgameli/ztvs-sdk-go)
+
 A dedicated Go SDK for building security plugins for the **Zero Trust Vulnerability Scanner (ZTVS)**. This SDK abstracts the underlying JSON-RPC communication and provides a high-level API for defining and running security checks.
 
 ## Installation
